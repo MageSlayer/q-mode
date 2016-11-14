@@ -332,6 +332,11 @@ to read the command line arguments from the minibuffer."
   (while (string-match "\n[ \t]+" text) (setq text (replace-match " " t t text))) ; fold functions
   text)
 
+(defun q-buf-substr (start end)
+  "Get buffer text without formatting/text properties"
+  (buffer-substring-no-properties start end)
+  )
+
 (defun q-send-string (string)
   (unless (cdr (assoc 'comint-process-echoes (buffer-local-variables (get-buffer q-active-buffer))))
     (let ((msg (concat q-msg-prefix string q-msg-postfix)))
@@ -343,7 +348,7 @@ to read the command line arguments from the minibuffer."
 (defun q-eval-region (start end)
   "Send the current region to the inferior q[con] process."
   (interactive "r")
-  (q-send-string (q-strip (buffer-substring start end))))
+  (q-send-string (q-strip (q-buf-substr start end))))
 
 (defun q-eval-line ()
   "Send the current line to the inferior q[con] process."
@@ -360,10 +365,11 @@ to read the command line arguments from the minibuffer."
   (interactive)
   (save-excursion
     (goto-char (point-at-eol))          ; go to end of line
-    (let ((start (re-search-backward q-function-regex)) ; find beinning of function
+    (let ((start (re-search-backward q-function-regex)) ; find beginning of function
           (end   (re-search-forward ":")) ; find end of function name
-          (fun   (thing-at-point 'sexp))) ; find function body
-      (q-send-string (q-strip (concat (buffer-substring start end) fun))))))
+          (fun   (thing-at-point 'sexp t))) ; find function body without any text properties
+      (q-send-string (q-strip (concat (q-buf-substr start end) fun)))
+      )))
 
 (defun q-load-file()
   "Load current buffer's file into the inferior q[con] process after saving."
